@@ -1,0 +1,41 @@
+name: Release to production
+
+# Une version taguée vX.Y.Z sur main : migrations sur la base de production,
+# puis avance de la branche `production`, que Netlify publie (15 crédits par déploiement).
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Tag ou SHA à publier (rollback : indiquer la version précédente)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: production # approbation manuelle requise (règle de l'environnement GitHub)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.ref || github.ref }}
+      - name: Le commit publié doit appartenir à main
+        run: git merge-base --is-ancestor HEAD origin/main
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Migrations (base de production)
+        run: npm run db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+      - name: Publier sur la branche production
+        run: git push --force origin HEAD:refs/heads/production
+      - name: Créer la release GitHub
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "${GITHUB_REF_NAME}" --generate-notes --verify-tag
