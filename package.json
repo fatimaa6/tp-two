@@ -43,7 +43,7 @@
     "@playwright/test": "^1.49.1",
     "@types/luxon": "^3.4.2",
     "@types/node": "^22.10.2",
-    "@types/nodemailer": "^6.4.17",
+    "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.11.10",
     "@types/react": "^18.3.17",
     "@types/react-dom": "^18.3.5",
